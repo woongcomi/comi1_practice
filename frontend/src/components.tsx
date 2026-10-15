@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useState } from 'react'
 import { api, type PlayerSummary, type TeamRef } from './api'
 
@@ -14,7 +15,7 @@ export function TeamBadge({ team, size = 'md' }: { team: TeamRef; size?: 'sm' | 
   )
   const cls = `team-badge ${size} ${team.kleague ? 'is-kleague' : ''}`
   return team.kleague && team.id ? (
-    <a className={cls} href={`#/team/${team.id}`}>
+    <a className={cls} href={`#/club/${team.id}`}>
       {body}
     </a>
   ) : (
@@ -121,4 +122,36 @@ export function Status({ loading, error }: { loading: boolean; error: boolean })
   if (error) return <p className="muted">데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
   if (loading) return <p className="muted">불러오는 중...</p>
   return null
+}
+
+export function Tabs({ items, active }: { items: { key: string; label: string; href: string }[]; active: string }) {
+  return (
+    <nav className="tabs">
+      {items.map((t) => (
+        <a key={t.key} href={t.href} className={t.key === active ? 'active' : ''} aria-current={t.key === active ? 'page' : undefined}>
+          {t.label}
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+export function StatTile({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
+  return (
+    <div className="stat-tile">
+      <span className="stat-tile-label">{label}</span>
+      <span className="stat-tile-value">{value}</span>
+      {sub && <span className="stat-tile-sub">{sub}</span>}
+    </div>
+  )
+}
+
+/** 데이터가 일부 경기에만 있을 때 붙이는 안내 */
+export function CoverageNote({ matches, total, what = '세부 기록' }: { matches: number; total?: number; what?: string }) {
+  return (
+    <p className="coverage-note">
+      ⓘ {what}은 데이터 제공처가 일부 경기만 기록해 <strong>{matches}경기</strong>
+      {total ? ` (전체 ${total}경기 중)` : ''} 기준입니다.
+    </p>
+  )
 }

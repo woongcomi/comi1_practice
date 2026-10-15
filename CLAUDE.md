@@ -27,6 +27,18 @@ React(Vite + TypeScript) 프론트엔드와 FastAPI 백엔드로 이루어진 �
 - 프론트엔드 라우팅은 해시 기반(`#/player/:id`, `#/team/:id`)이다(`hooks.ts`의 `useHashRoute`). 서버 쪽 라우팅 설정 없이 링크를 공유할 수 있게 하려는 것이다.
 - 테스트는 `app.dependency_overrides[get_store]`로 가짜 데이터를 주입한다(`tests/test_transfers.py`).
 
+## 시즌 기록 (순위, 경기, 팀·선수 기록)
+
+- `app/collect_season.py`: 시즌마다 `data/seasons/{season}/league_{id}.json`(순위표 + 경기 목록)과 `matches/{fixture_id}.json`(경기 상세)을 저장한다. 경기 상세는 `fixtures?id=` **한 번의 요청**으로 이벤트·라인업·팀 기록·선수 기록을 모두 받는다. 이미 받은 경기는 건너뛰므로 `--budget`만큼씩 매일 이어 받으면 된다(`.github/workflows/collect-season.yml`, 하루 60회).
+- `app/season.py`의 `SeasonStore`가 집계한다. **출전·출전 시간·골·도움·카드는 라인업과 이벤트에서 직접 계산**한다. 이 둘은 모든 경기에 있다. 슈팅·패스 같은 세부 기록(경기 파일의 `players`)과 팀 기록(`statistics`)은 일부 경기에만 있으므로, 응답에 항상 몇 경기 기준인지(`detail_matches`, `style.matches`)를 함께 담고 화면에 안내를 붙인다.
+- API 데이터의 특이점:
+  - 교체 이벤트는 `player` = 나간 선수, `assist` = 들어간 선수다.
+  - K리그1 순위표는 Championship/Relegation/Regular 세 그룹으로 오고, 파이널B 순위는 1부터 매겨져 있어서 +6 한다.
+  - 같은 선수 이름이 라인업과 이벤트에서 다르게 표기된다(Park Jin-Seop / Jin-seob Park). 그래서 선수는 항상 ID로 묶고, 검색은 `aliases` 전체를 대상으로 한다.
+  - 선수 경기 기록의 `passes.accuracy`는 성공률이 아니라 성공 횟수다(`passes_accurate`로 저장).
+  - 자책골 이벤트의 `team`이 어느 팀을 가리키는지는 아직 확인하지 않았다. `team()`의 시간대별 득·실점에 영향을 준다.
+- 그래프 색은 `index.css`의 `--series-home`/`--series-away`(dataviz 검증 통과)만 쓰고, 글자는 본문 색을 쓴다.
+
 ### API-Football 무료 플랜 제약 (직접 확인함)
 
 - 하루 100회, 분당 10회. 수집기는 요청 사이에 7초씩 쉬고, rate limit에 걸리면 61초 뒤 재시도한다.

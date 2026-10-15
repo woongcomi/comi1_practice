@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import { api, type TransferEvent } from './api'
-import { KindTag, PlayerSearch, SeasonSelect, Status, TeamBadge } from './components'
-import { useAsync } from './hooks'
+import { api, type TransferEvent } from '../api'
+import { KindTag, PlayerSearch, SeasonSelect, Status, TeamBadge } from '../components'
+import { useAsync } from '../hooks'
 
-type SeasonProps = {
+export type SeasonProps = {
   seasons: number[]
   season: number | null
   setSeason: (s: number | null) => void
 }
 
-export function HomePage({ seasons, season, setSeason }: SeasonProps) {
+export function TransfersPage({ seasons, season, setSeason }: SeasonProps) {
   const [kleagueOnly, setKleagueOnly] = useState(true)
   const teams = useAsync(() => api.teams(season), [season])
   const flows = useAsync(() => api.flows(season, kleagueOnly), [season, kleagueOnly])
@@ -17,7 +17,7 @@ export function HomePage({ seasons, season, setSeason }: SeasonProps) {
   return (
     <>
       <section className="hero">
-        <h1>K리그 선수 이적 추적</h1>
+        <h1>선수 이적 추적</h1>
         <p className="muted">선수가 어느 팀에서 어느 팀으로 옮겼는지, 커리어 경로를 따라가 보세요.</p>
         <PlayerSearch autoFocus />
       </section>
@@ -32,7 +32,7 @@ export function HomePage({ seasons, season, setSeason }: SeasonProps) {
         <ul className="team-grid">
           {teams.data?.map((t) => (
             <li key={t.id}>
-              <a className="team-card" href={`#/team/${t.id}`}>
+              <a className="team-card" href={`#/club/${t.id}/transfers`}>
                 <img className="logo lg" src={t.logo ?? ''} alt="" loading="lazy" />
                 <span className="team-name">{t.name}</span>
                 <span className="counts">
@@ -65,7 +65,9 @@ export function HomePage({ seasons, season, setSeason }: SeasonProps) {
               <details>
                 <summary>
                   <TeamBadge team={f.from} size="sm" />
-                  <span className="arrow" aria-label="에서">→</span>
+                  <span className="arrow" aria-label="에서">
+                    →
+                  </span>
                   <TeamBadge team={f.to} size="sm" />
                   <span className="flow-count">{f.count}명</span>
                 </summary>
@@ -87,59 +89,15 @@ export function HomePage({ seasons, season, setSeason }: SeasonProps) {
   )
 }
 
-export function PlayerPage({ id }: { id: number }) {
-  const { data, loading, error } = useAsync(() => api.player(id), [id])
-  if (!data) return <Status loading={loading} error={error} />
-
-  // 커리어 경로 요약: 첫 출발 팀 + 각 이적의 도착 팀
-  const path = [data.transfers[0].from, ...data.transfers.map((t) => t.to)]
-
-  return (
-    <>
-      <PlayerSearch />
-      <section className="player-head">
-        <h1>{data.name}</h1>
-        <p className="muted">
-          최근 소속: <TeamBadge team={data.latest_team} size="sm" /> · 기록된 이동{' '}
-          {data.transfer_count}회
-        </p>
-      </section>
-
-      <section>
-        <h2>커리어 경로</h2>
-        <div className="career-path">
-          {path.map((team, i) => (
-            <span key={i} className="path-step">
-              {i > 0 && <span className="arrow">→</span>}
-              <TeamBadge team={team} size="sm" />
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h2>이적 타임라인</h2>
-        <ol className="timeline">
-          {[...data.transfers].reverse().map((t) => (
-            <li key={`${t.date}-${t.from.id}-${t.to.id}`}>
-              <time dateTime={t.date}>{t.date}</time>
-              <div className="timeline-body">
-                <KindTag kind={t.kind} fee={t.fee} />
-                <div className="move">
-                  <TeamBadge team={t.from} />
-                  <span className="arrow">→</span>
-                  <TeamBadge team={t.to} />
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-    </>
-  )
-}
-
-function TransferList({ title, events, dir }: { title: string; events: TransferEvent[]; dir: 'in' | 'out' }) {
+function TransferList({
+  title,
+  events,
+  dir,
+}: {
+  title: string
+  events: TransferEvent[]
+  dir: 'in' | 'out'
+}) {
   return (
     <section className="transfer-list">
       <h2>
@@ -167,30 +125,21 @@ function TransferList({ title, events, dir }: { title: string; events: TransferE
   )
 }
 
-export function TeamPage({ id, seasons, season, setSeason }: SeasonProps & { id: number }) {
-  const { data, loading, error } = useAsync(() => api.team(id, season), [id, season])
-
+/** 구단 페이지의 '이적' 탭 */
+export function ClubTransfers({ id, seasons, season, setSeason }: SeasonProps & { id: number }) {
+  const { data, loading, error } = useAsync(() => api.teamTransfers(id, season), [id, season])
   return (
     <>
       <div className="toolbar">
-        <a href="#/" className="back">
-          ← 전체 구단
-        </a>
         <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
       </div>
       {!data ? (
         <Status loading={loading} error={error} />
       ) : (
-        <>
-          <section className="team-head">
-            {data.team.logo && <img className="logo xl" src={data.team.logo} alt="" />}
-            <h1>{data.team.name}</h1>
-          </section>
-          <div className="two-col">
-            <TransferList title="영입" events={data.incoming} dir="in" />
-            <TransferList title="방출" events={data.outgoing} dir="out" />
-          </div>
-        </>
+        <div className="two-col">
+          <TransferList title="영입" events={data.incoming} dir="in" />
+          <TransferList title="방출" events={data.outgoing} dir="out" />
+        </div>
       )}
     </>
   )

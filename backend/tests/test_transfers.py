@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.season import SeasonStore, get_season_store
 from app.transfers import TransferStore, classify, get_store
 
 SEOUL, ULSAN, SANGMU = 2766, 2767, 2768
@@ -37,8 +38,9 @@ RAW = {
 
 
 @pytest.fixture
-def client():
+def client(tmp_path):
     app.dependency_overrides[get_store] = lambda: TransferStore(RAW)
+    app.dependency_overrides[get_season_store] = lambda: SeasonStore(tmp_path / "none")
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -87,7 +89,7 @@ def test_unknown_player_is_404(client) -> None:
 
 
 def test_team_incoming_and_outgoing_by_season(client) -> None:
-    body = client.get(f"/api/teams/{SEOUL}", params={"season": 2026}).json()
+    body = client.get(f"/api/teams/{SEOUL}/transfers", params={"season": 2026}).json()
     assert [e["player"]["id"] for e in body["outgoing"]] == [1, 2]
     assert body["incoming"] == []
 

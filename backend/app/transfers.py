@@ -103,8 +103,12 @@ def normalize_player_transfers(rows: list[list], player_name: str) -> list[dict]
     return kept
 
 
-def _search_key(text: str) -> str:
+def search_key(text: str) -> str:
     return re.sub(r"[\s\-.'’]", "", text).lower()
+
+
+def search_tokens(q: str) -> list[str]:
+    return [k for k in (search_key(t) for t in q.split()) if k]
 
 
 class TransferStore:
@@ -119,7 +123,7 @@ class TransferStore:
             player = {"id": int(pid), "name": p["name"]}
             self.players[int(pid)] = {
                 **player,
-                "search_key": _search_key(p["name"]),
+                "search_key": search_key(p["name"]),
                 "transfers": transfers,
             }
             self.events.extend({**t, "player": player} for t in transfers)
@@ -145,7 +149,7 @@ class TransferStore:
         }
 
     def search_players(self, q: str, limit: int = 20) -> list[dict]:
-        tokens = [_search_key(t) for t in q.split() if _search_key(t)]
+        tokens = search_tokens(q)
         if not tokens:
             return []
         hits = [p for p in self.players.values() if all(t in p["search_key"] for t in tokens)]

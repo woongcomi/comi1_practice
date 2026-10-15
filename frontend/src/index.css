@@ -16,6 +16,21 @@
   --free-soft: #ece8f8;
   --unknown-soft: #eef0f3;
 
+  /* 그래프 색 (dataviz 검증 통과: 홈=파랑, 원정=주황) */
+  --series-home: #2a78d6;
+  --series-away: #eb6834;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --status-good: #0ca30c;
+  --status-critical: #d03b3b;
+  --draw: #9aa0a9;
+  --zone-acl: #2a78d6;
+  --zone-promotion: #0ca30c;
+  --zone-playoff: #eda100;
+  --zone-relegation: #d03b3b;
+  --pitch: #e8f3ec;
+  --pitch-line: #b9d8c4;
+
   /* 영문 글꼴을 한글 글꼴보다 앞에 둔다. 맑은 고딕에는 č, ć 같은 유럽 문자가 없어 선수 이름이 깨진다 */
   font-family:
     'Pretendard', -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui,
@@ -45,6 +60,15 @@
     --free: #b7a6f0;
     --free-soft: #2a2442;
     --unknown-soft: #262a31;
+    --series-home: #3987e5;
+    --series-away: #d95926;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --draw: #6b717b;
+    --zone-acl: #3987e5;
+    --zone-playoff: #c98500;
+    --pitch: #16261d;
+    --pitch-line: #2c4a37;
   }
 }
 
