@@ -16,6 +16,25 @@ React(Vite + TypeScript) 프론트엔드와 FastAPI 백엔드로 이루어진 �
 - 프론트엔드는 항상 상대 경로(`fetch('/api/...')`)로 호출한다. 개발 중에는 `vite.config.ts`의 프록시가 `/api`를 `localhost:8000`으로 넘기고, 프로덕션에서는 출처가 같으므로 CORS 설정이 필요 없다.
 - `app/main.py`는 `backend/static`이 있을 때만 이를 마운트한다. 이 폴더는 Docker 빌드 중에만 생기며 gitignore 대상이다.
 
+## K리그 이적 추적 (현재 기능)
+
+데이터는 DB 없이 **저장소에 커밋된 JSON 파일**(`backend/data/transfers.json`)에 있다. Render 무료 플랜 디스크는 재배포 때 초기화되므로 이 방식을 쓴다.
+
+- `app/collect.py`: API-Football `/transfers?team=`를 `app/kleague.py`의 구단마다 호출해 선수 ID 기준으로 합쳐 저장한다. **원본에 가까운 형태로만 저장**하고 가공하지 않는다. 선수 데이터가 같으면 파일을 건드리지 않는다.
+- `app/transfers.py`: 앱 시작 후 첫 요청 때 JSON을 읽어(`get_store`, 캐시됨) 유형 분류(`classify`), 날짜순 정렬, 중복 제거(같은 경로가 60일 안에 두 번이면 하나로)를 한다. 가공 규칙을 바꿀 때는 다시 수집할 필요가 없다.
+- `app/kleague.py`: K리그 구단 ID → 한글 이름. 이 목록에 있는 팀만 `kleague: true`가 되고 한글 이름과 구단 페이지를 갖는다. 새 구단이 생기면 여기에 추가한다.
+- 갱신: `.github/workflows/collect-transfers.yml`이 매주 수집해서 변경이 있으면 커밋하고, Render가 재배포한다. GitHub secret `API_FOOTBALL_KEY`가 필요하다.
+- 프론트엔드 라우팅은 해시 기반(`#/player/:id`, `#/team/:id`)이다(`hooks.ts`의 `useHashRoute`). 서버 쪽 라우팅 설정 없이 링크를 공유할 수 있게 하려는 것이다.
+- 테스트는 `app.dependency_overrides[get_store]`로 가짜 데이터를 주입한다(`tests/test_transfers.py`).
+
+### API-Football 무료 플랜 제약 (직접 확인함)
+
+- 하루 100회, 분당 10회. 수집기는 요청 사이에 7초씩 쉬고, rate limit에 걸리면 61초 뒤 재시도한다.
+- 시즌 단위 엔드포인트(fixtures, teams, players)는 **2022~2024 시즌만** 조회된다. `/transfers`는 시즌 제한이 없어 최신 이적까지 나온다.
+- `fixtures?ids=` 일괄 조회는 막혀 있다.
+- K리그1 경기별 선수 기록(`fixtures/players`)은 2024 시즌의 일부 경기(대략 8월 이후)에만 있다. 선수 기록 기능을 만들려면 유료 플랜으로 범위를 다시 확인해야 한다.
+- 선수 이름은 영문뿐이다. 이적 `type`은 "N/A", "Loan", "€ 2M" 같은 자유 형식이라 `classify`로 정리한다.
+
 ## 명령어
 
 백엔드 (`backend/`에서 실행, Windows 가상환경 기준):
@@ -26,6 +45,7 @@ py -3.12 -m venv .venv                      # 최초 1회
 .venv/Scripts/python -m uvicorn app.main:app --reload   # 개발 서버 :8000
 .venv/Scripts/python -m pytest                          # 전체 테스트
 .venv/Scripts/python -m pytest tests/test_health.py::test_health   # 단일 테스트
+.venv/Scripts/python -m app.collect         # 이적 데이터 수집 (약 4분, API 약 30회 사용; 키는 backend/.env)
 .venv/Scripts/ruff check .                  # 린트 (--fix로 자동 수정)
 .venv/Scripts/ruff format .
 ```
